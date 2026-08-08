@@ -2,6 +2,7 @@ import os
 import json
 import httpx
 import pytest
+from unittest.mock import patch
 
 # Compatibility patch for httpx >= 0.28.0 with starlette TestClient
 _orig_httpx_init = httpx.Client.__init__
@@ -17,6 +18,21 @@ from fastapi.testclient import TestClient
 from main import app
 
 client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def mock_ollama_for_fast_pytest():
+    """Mock Ollama generate_response during pytest execution for instant sub-second test runs."""
+    async def mock_generate(self, prompt: str, *args, **kwargs) -> str:
+        country = self.country.lower()
+        priorities = self.positions.get("priorities", [])
+        p_str = " and ".join(priorities) if priorities else "balanced trade terms"
+        if country == "usa":
+            return f"The USA proposes a trade agreement to reduce tariffs on technology products and strengthen intellectual property (IP) protection clauses."
+        else:
+            return f"China agrees to negotiate provided we gain greater market access for agricultural products and limit restrictions on technology transfer."
+
+    with patch("agents.negotiator.Negotiator.generate_response", new=mock_generate):
+        yield
 
 def test_negotiation_rounds_length():
     """Verify that requesting 3 rounds returns a rounds array of length 3."""

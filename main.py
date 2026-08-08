@@ -1,13 +1,19 @@
 import json
 import os
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 
 from agents.negotiator import Negotiator
 from scoring import calculate_compromise, save_negotiation_log
 
-app = FastAPI(title="AI Trade Negotiation Simulator")
+app = FastAPI(
+    title="AI Trade Negotiation Simulator",
+    description="Multi-agent bilateral trade agreement negotiation engine powered by Ollama and FastAPI",
+    version="1.0.0"
+)
 
 # Path to initial trade positions
 POSITIONS_FILE = os.getenv(
@@ -15,10 +21,22 @@ POSITIONS_FILE = os.getenv(
     os.path.join(os.path.dirname(__file__), "data", "trade_positions.json")
 )
 
+# Serve static UI files if static directory exists
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.get("/", include_in_schema=False)
+async def serve_ui():
+    """Serves the interactive single-page application UI."""
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "AI Trade Negotiation Simulator API is operational. Visit /negotiate or /docs."}
+
 def load_trade_positions() -> dict:
     """Loads country trade positions and priorities dynamically from JSON file."""
     if not os.path.exists(POSITIONS_FILE):
-        # Fallback default positions if file missing
         return {
             "usa": {
                 "priorities": [
@@ -38,11 +56,135 @@ def load_trade_positions() -> dict:
     with open(POSITIONS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
+# Pydantic Schemas for Positions Response
+class CountryPosition(BaseModel):
+    priorities: List[str] = Field(..., description="List of trade priorities")
+    flexibility: Dict[str, float] = Field(..., description="Flexibility weights per domain")
+
+class TradePositionsResponse(BaseModel):
+    usa: CountryPosition
+    china: CountryPosition
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "usa": {
+                    "priorities": [
+                        "Reduce tariffs on technology products",
+                        "Strengthen intellectual property (IP) protection clauses"
+                    ],
+                    "flexibility": {
+                        "tariffs": 0.7,
+                        "ip_protection": 0.3
+                    }
+                },
+                "china": {
+                    "priorities": [
+                        "Gain greater market access for agricultural products",
+                        "Limit restrictions on technology transfer"
+                    ],
+                    "flexibility": {
+                        "market_access": 0.8,
+                        "tech_transfer_limits": 0.4
+                    }
+                }
+            }
+        }
+    }
+
+@app.get(
+    "/positions", 
+    response_model=TradePositionsResponse,
+    summary="Get Initial Trade Positions",
+    description="Returns the dynamically loaded initial trade positions, priorities, and flexibility weights for USA and China."
+)
+async def get_positions():
+    """Returns the dynamically loaded initial trade positions for USA and China."""
+    return load_trade_positions()
+
+# Pydantic Schemas with OpenAPI Examples for Swagger UI
 class NegotiateRequest(BaseModel):
     issue: str = Field(..., description="The trade issue subject to negotiation")
     rounds: int = Field(default=3, description="Number of negotiation rounds", ge=1)
 
-@app.post("/negotiate")
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "issue": "Semiconductor Import Tariffs",
+                "rounds": 3
+            }
+        }
+    }
+
+class RoundItem(BaseModel):
+    round: int = Field(..., description="Round number")
+    usa_proposal: str = Field(..., description="Proposal string from USA agent")
+    china_response: str = Field(..., description="Response string from China agent")
+
+class OutcomeObject(BaseModel):
+    agreement_reached: bool = Field(..., description="Boolean indicating if agreement was reached")
+    final_terms: str = Field(..., description="Summary string detailing final negotiation terms")
+    compromise_score: float = Field(..., description="Normalized compromise score between 0.0 and 1.0")
+
+class NegotiateResponse(BaseModel):
+    rounds: List[RoundItem] = Field(..., description="Array of round-by-round proposals and responses")
+    outcome: OutcomeObject = Field(..., description="Negotiation outcome details")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "rounds": [
+                    {
+                        "round": 1,
+                        "usa_proposal": "The USA proposes to reduce tariffs on technology products and strengthen intellectual property (IP) protection clauses.",
+                        "china_response": "China agrees to negotiate provided we gain greater market access for agricultural products."
+                    },
+                    {
+                        "round": 2,
+                        "usa_proposal": "The USA agrees to grant market access for agricultural products if IP protections are strictly enforced.",
+                        "china_response": "China accepts lower tariffs and agrees to mutual intellectual property safeguards."
+                    },
+                    {
+                        "round": 3,
+                        "usa_proposal": "The USA confirms the reduced tariff schedule and IP protection terms.",
+                        "china_response": "China signs the agreement based on agricultural access and technology transfer terms."
+                    }
+                ],
+                "outcome": {
+                    "agreement_reached": True,
+                    "final_terms": "Agreement reached on Semiconductor Import Tariffs. USA proposed: 'The USA confirms the reduced tariff schedule...'. China agreed with terms: 'China signs the agreement...'.",
+                    "compromise_score": 0.78
+                }
+            }
+        }
+    }
+
+HTTP_422_CUSTOM_EXAMPLE = {
+    422: {
+        "description": "Validation Error",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": [
+                        {
+                            "loc": ["body", "issue"],
+                            "msg": "Field required",
+                            "type": "missing"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}
+
+@app.post(
+    "/negotiate", 
+    response_model=NegotiateResponse,
+    responses=HTTP_422_CUSTOM_EXAMPLE,
+    summary="Initiate Negotiation Simulation",
+    description="Triggers multi-round turn-taking between USA and China agents, evaluates compromise score, and logs outcome."
+)
 async def negotiate(request: NegotiateRequest):
     positions = load_trade_positions()
     ollama_url = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")

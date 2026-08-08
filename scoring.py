@@ -1,7 +1,8 @@
+# scoring.py
+from typing import List, Dict
 import json
 import os
 import logging
-from typing import List, Dict
 
 logger = logging.getLogger("scoring")
 
@@ -15,14 +16,16 @@ COMBATIVE_KEYWORDS = [
     "sanction", "threat", "strict", "prohibit", "never"
 ]
 
+# Analyzes the final negotiation history to output a normalized score.
+# Params:
+#   - history (List[Dict]): The full array of rounds containing proposals and responses.
+#   - positions (Dict): The initial configurations for both agents.
+# Returns: A float between 0.0 and 1.0 representing the level of compromise.
 def calculate_compromise(history: List[Dict], positions: dict) -> float:
-    """
-    Analyzes the final negotiation history to output a normalized score between 0.0 and 1.0.
-    Params:
-      - history (List[Dict]): The full array of rounds containing proposals and responses.
-      - positions (dict): The initial configurations for both agents.
-    Returns: A float between 0.0 and 1.0 representing the level of compromise.
-    """
+    # Define a list of concession keywords (e.g., 'agree', 'accept', 'concede', 'lower')
+    # Iterate through the history array.
+    # Tally instances where agents used concession keywords versus combative keywords.
+    # Normalize the final count into a floating-point number between 0.0 and 1.0.
     if not history:
         return 0.5
 
@@ -40,14 +43,12 @@ def calculate_compromise(history: List[Dict], positions: dict) -> float:
         for word in COMBATIVE_KEYWORDS:
             combative_count += combined_text.count(word)
 
-    # Calculate baseline compromise score
     total_signals = concession_count + combative_count
     if total_signals == 0:
         base_score = 0.5
     else:
         base_score = concession_count / (concession_count + combative_count)
 
-    # Adjust based on flexibility parameters if present
     usa_flex = positions.get("usa", {}).get("flexibility", {})
     china_flex = positions.get("china", {}).get("flexibility", {})
     
@@ -56,10 +57,7 @@ def calculate_compromise(history: List[Dict], positions: dict) -> float:
     if all_flex_vals:
         avg_flex = sum(all_flex_vals) / len(all_flex_vals)
 
-    # Weighted score combining text sentiment and agent flexibilities
     final_score = (base_score * 0.7) + (avg_flex * 0.3)
-
-    # Ensure result is strictly within 0.0 and 1.0
     return float(round(max(0.0, min(1.0, final_score)), 2))
 
 def save_negotiation_log(log_entry: dict, filepath: str = "negotiation_log.json") -> None:

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Trade Negotiation Simulator</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="background-globes">
+    <div class="globe globe-1"></div>
+    <div class="globe globe-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <span class="logo-icon">🤝</span>
+        <div>
+          <h1>AI Trade Negotiation Simulator</h1>
+          <p class="subtitle">Multi-Agent Bilateral Diplomacy Engine • USA vs China</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-ollama"><span class="pulse-dot"></span> Ollama LLM Active</span>
+        <span class="badge badge-fastapi">FastAPI Backend</span>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-grid">
+      <!-- Control Panel Sidebar -->
+      <aside class="control-panel glass-card">
+        <h2><span class="icon">⚙️</span> Negotiation Setup</h2>
+        <form id="negotiation-form">
+          <div class="form-group">
+            <label for="issue">Negotiation Issue / Topic</label>
+            <input 
+              type="text" 
+              id="issue" 
+              name="issue" 
+              value="Semiconductor & Tech Tariffs" 
+              placeholder="e.g. Semiconductor Tariffs, Agricultural Subsidies..." 
+              required 
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="rounds">Rounds of Negotiation (<span id="rounds-val">3</span>)</label>
+            <input type="range" id="rounds" name="rounds" min="1" max="5" value="3" />
+          </div>
+
+          <!-- Priorities Quick View -->
+          <div class="priorities-preview">
+            <h3>Initial Stances</h3>
+            <div class="stance-box stance-usa">
+              <span class="flag">🇺🇸</span>
+              <div>
+                <strong>USA Stance</strong>
+                <small>Reduce Tech Tariffs • IP Protection</small>
+              </div>
+            </div>
+            <div class="stance-box stance-china">
+              <span class="flag">🇨🇳</span>
+              <div>
+                <strong>China Stance</strong>
+                <small>Agricultural Market Access • Tech Transfer Limits</small>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn-primary">
+            <span id="btn-text">Initiate Negotiation</span>
+            <div id="btn-spinner" class="spinner hidden"></div>
+          </button>
+        </form>
+
+        <!-- Quick Preset Badges -->
+        <div class="preset-section">
+          <label>Quick Topics:</label>
+          <div class="preset-tags">
+            <button class="preset-tag" data-issue="Technology Import Tariffs">Tech Tariffs</button>
+            <button class="preset-tag" data-issue="Agricultural Market Access">Agri Access</button>
+            <button class="preset-tag" data-issue="Intellectual Property Safeguards">IP Protection</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <section class="results-panel">
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state glass-card">
+          <div class="empty-icon">🌐</div>
+          <h3>Ready for Diplomacy</h3>
+          <p>Configure the negotiation issue and click <strong>Initiate Negotiation</strong> to watch USA and China agents negotiate in real-time.</p>
+        </div>
+
+        <!-- Outcome Card (Hidden Initially) -->
+        <div id="outcome-card" class="outcome-card glass-card hidden">
+          <div class="outcome-header">
+            <div>
+              <span id="outcome-status-badge" class="outcome-badge">Agreement Reached</span>
+              <h2 id="outcome-issue-title">Semiconductor Tariffs</h2>
+            </div>
+            <div class="score-circle-container">
+              <svg class="score-circle" viewBox="0 0 36 36">
+                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="score-circle-progress" class="circle-progress" stroke-dasharray="75, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div class="score-text">
+                <span id="score-val">0.75</span>
+                <small>Compromise</small>
+              </div>
+            </div>
+          </div>
+          <div class="final-terms-box">
+            <span class="terms-label">Final Consensus Terms:</span>
+            <p id="final-terms-text">Final terms text will appear here...</p>
+          </div>
+        </div>
+
+        <!-- Rounds Container -->
+        <div id="rounds-container" class="rounds-container"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
