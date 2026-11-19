@@ -4,6 +4,32 @@ services:
     container_name: ollama
     ports:
       - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Dedicated model puller service that runs automatically after ollama starts
+  ollama-pull:
+    image: ollama/ollama
+    container_name: ollama-pull
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=ollama:11434
+    command: pull llama3.1:8b
 
   api:
     build:
@@ -16,5 +42,10 @@ services:
       - ollama
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.1:8b
     volumes:
       - ./data:/app/data
+      - ./negotiation_log.json:/app/negotiation_log.json
+
+volumes:
+  ollama_data:

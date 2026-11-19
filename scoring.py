@@ -62,20 +62,12 @@ def calculate_compromise(history: List[Dict], positions: dict) -> float:
 
 def save_negotiation_log(log_entry: dict, filepath: str = "negotiation_log.json") -> None:
     """
-    Persists the state of completed negotiations by appending to local JSON file.
+    Persists the state of completed negotiations by appending line-delimited JSON (JSONL) records in 'a' mode.
+    Avoids read-modify-write race conditions and write contention under concurrent requests.
     """
-    logs = []
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                logs = json.load(f)
-                if not isinstance(logs, list):
-                    logs = [logs]
-        except Exception as e:
-            logger.warning(f"Could not read existing log file {filepath}: {e}")
-            logs = []
-
-    logs.append(log_entry)
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(logs, f, indent=2)
+    try:
+        with open(filepath, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry) + "\n")
+    except Exception as e:
+        logger.error(f"Failed to append negotiation log to {filepath}: {e}")
+        raise
