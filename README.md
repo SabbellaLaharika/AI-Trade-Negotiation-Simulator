@@ -288,7 +288,12 @@ $$S_{\text{sentiment}} = \frac{C_{\text{concession}}}{C_{\text{concession}} + C_
 $$F_{\text{flexibility}} = \frac{1}{|V|} \sum_{v \in V} v \quad \text{where } V = \text{values}(\text{usa.flexibility}) \cup \text{values}(\text{china.flexibility})$$
 
 #### 3. Consensus Decision Boundary
-$$\text{agreement\_reached} = \begin{cases} \text{true} & \text{if } \text{Compromise Score} \ge 0.50 \\ \text{false} & \text{if } \text{Compromise Score} < 0.50 \end{cases}$$
+
+$$\text{Compromise Score} \ge 0.50 \implies \mathbf{Agreement\ Reached}$$
+$$\text{Compromise Score} < 0.50 \implies \mathbf{Diplomatic\ Stalemate}$$
+
+* **`agreement_reached = true`**: Triggered when $\text{Compromise Score} \ge 0.50$, synthesizing mutual treaty terms.
+* **`agreement_reached = false`**: Triggered when $\text{Compromise Score} < 0.50$, recording a diplomatic impasse.
 
 > [!NOTE]
 > If a dialogue has zero concession and zero combative words ($C_{\text{total}} = 0$), $S_{\text{sentiment}}$ defaults safely to `0.50`.
