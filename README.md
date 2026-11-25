@@ -11,6 +11,12 @@ An enterprise-grade, autonomous multi-agent bilateral diplomacy engine where AI 
 
 ---
 
+## 🎥 Project Demo
+
+[![Watch the AI Trade Negotiation Simulator Demo on YouTube](https://img.youtube.com/vi/Azd48ieN-IM/maxresdefault.jpg)](https://youtu.be/Azd48ieN-IM)
+
+---
+
 ## Executive Summary & Problem Solved
 
 ### The Problem
